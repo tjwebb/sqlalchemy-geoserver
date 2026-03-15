@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqlalchemy-geoserver"
+version = "0.1.0"
+description = "A SQLAlchemy Dialect and DBAPI 2.0 driver for GeoServer WFS"
+readme = "README.md"
+authors = [
+    { name = "tjwebb" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.13"
+dependencies = [
+    "requests",
+    "sqlalchemy>=2.0",
+    "python-dotenv"
+]
+
+[project.entry-points."sqlalchemy.dialects"]
+geoserver = "sqlalchemy_geoserver.dialect:GeoServerDialect"
+"geoserver.http" = "sqlalchemy_geoserver.dialect:GeoServerDialect"
+"geoserver.https" = "sqlalchemy_geoserver.dialect:GeoServerDialect"
+
+[tool.setuptools.packages.find]
+where = ["src"]

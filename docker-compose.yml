@@ -1,0 +1,18 @@
+services:
+
+  geoserver-test:
+    image: docker.osgeo.org/geoserver:3.0.x
+    container_name: geoserver-test
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./geoserver_data:/opt/geoserver_data
+    environment:
+      GEOSERVER_CSRF_DISABLED: true
+      WEBAPP_CONTEXT: ""
+      INSTALL_EXTENSIONS: true
+      STABLE_EXTENSIONS: vectortiles
+      EXTRA_JAVA_OPTS: >
+        -Xms2g
+        -Xmx8g
+        -Dspring.jackson.serialization.FAIL_ON_EMPTY_BEANS=false

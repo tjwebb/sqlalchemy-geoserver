@@ -1,0 +1,6 @@
+.DS_Store
+.env.test
+*.egg*
+geoserver_data/
+__pycache__*
+*.sw*
