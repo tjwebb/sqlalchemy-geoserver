@@ -21,6 +21,13 @@ echo "Verifying build..."
 python3 -m twine check dist/*
 
 echo "Uploading to PyPI..."
-python3 -m twine upload dist/*
+# Use API token auth. Set PYPI_TOKEN env var or you'll be prompted.
+if [ -n "$PYPI_TOKEN" ]; then
+    python3 -m twine upload dist/* --username __token__ --password "$PYPI_TOKEN"
+else
+    echo "Tip: set PYPI_TOKEN env var to avoid interactive prompt."
+    echo "  Generate a token at https://pypi.org/manage/account/token/"
+    python3 -m twine upload dist/* --username __token__
+fi
 
 echo "Publish complete!"

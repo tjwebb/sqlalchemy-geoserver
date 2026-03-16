@@ -4,3 +4,4 @@
 geoserver_data/
 __pycache__*
 *.sw*
+dist/
