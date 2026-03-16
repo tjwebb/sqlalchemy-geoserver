@@ -1,5 +1,7 @@
 # SQLAlchemy GeoServer Dialect
 
+[![PyPI](https://img.shields.io/pypi/v/sqlalchemy-geoserver)](https://pypi.org/project/sqlalchemy-geoserver/)
+
 A DB-API 2.0 driver and a SQLAlchemy Dialect designed to query GeoServer WFS layers using pseudo-SQL converted to valid underlying HTTP `CQL_FILTER` queries.
 
 ## Installation
