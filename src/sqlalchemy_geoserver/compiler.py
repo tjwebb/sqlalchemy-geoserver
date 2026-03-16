@@ -46,7 +46,7 @@ class GeoServerCompiler(SQLCompiler):
 
         # Extract columns
         columns = [c.name for c in select_stmt.inner_columns] if select_stmt.inner_columns else []
-        
+
         limit = select_stmt._limit_clause
         offset = select_stmt._offset_clause
 
@@ -60,7 +60,6 @@ class GeoServerCompiler(SQLCompiler):
             "columns": columns
         }
         if limit_val is not None:
-            # literal binds might wrap it in single quotes or return string, so we clean it.
             instruction["limit"] = int(str(limit_val).strip("'"))
         if offset_val is not None:
             instruction["offset"] = int(str(offset_val).strip("'"))
@@ -73,7 +72,6 @@ class GeoServerCompiler(SQLCompiler):
 
     def render_literal_value(self, value, type_):
         if isinstance(value, str):
-            # CQL strings are single quoted
             val = value.replace("'", "''")
             return f"'{val}'"
         elif value is None:
@@ -82,13 +80,78 @@ class GeoServerCompiler(SQLCompiler):
             return "TRUE" if value else "FALSE"
         return super().render_literal_value(value, type_)
 
+    # --- Comparison operators (=, <>, <, >, <=, >=) ---
+    # Handled by SQLAlchemy's default visit_binary — produces valid CQL output
+
+    # --- LIKE / NOT LIKE ---
+    def visit_like_op_binary(self, binary, operator, **kw):
+        return f"{self.process(binary.left, **kw)} LIKE {self.process(binary.right, **kw)}"
+
+    def visit_not_like_op_binary(self, binary, operator, **kw):
+        return f"{self.process(binary.left, **kw)} NOT LIKE {self.process(binary.right, **kw)}"
+
+    # --- ILIKE / NOT ILIKE (case-insensitive LIKE, GeoServer extension) ---
     def visit_ilike_op_binary(self, binary, operator, **kw):
         return f"{self.process(binary.left, **kw)} ILIKE {self.process(binary.right, **kw)}"
-    
+
     def visit_not_ilike_op_binary(self, binary, operator, **kw):
         return f"{self.process(binary.left, **kw)} NOT ILIKE {self.process(binary.right, **kw)}"
 
+    # --- BETWEEN ---
+    def visit_between_op_binary(self, binary, operator, **kw):
+        return f"{self.process(binary.left, **kw)} BETWEEN {self.process(binary.right, **kw)}"
+
+    def visit_not_between_op_binary(self, binary, operator, **kw):
+        return f"{self.process(binary.left, **kw)} NOT BETWEEN {self.process(binary.right, **kw)}"
+
+    # --- IN / NOT IN ---
+    def visit_in_op_binary(self, binary, operator, **kw):
+        left = self.process(binary.left, **kw)
+        right = self.process(binary.right, **kw)
+        # Ensure parentheses wrap the value list
+        if not right.startswith("("):
+            right = f"({right})"
+        return f"{left} IN {right}"
+
+    def visit_not_in_op_binary(self, binary, operator, **kw):
+        left = self.process(binary.left, **kw)
+        right = self.process(binary.right, **kw)
+        if not right.startswith("("):
+            right = f"({right})"
+        return f"{left} NOT IN {right}"
+
+    # --- IS NULL / IS NOT NULL ---
+    # SQLAlchemy's default rendering produces "col IS NULL" / "col IS NOT NULL" which is valid CQL
+
+    # --- AND / OR / NOT ---
+    # SQLAlchemy's default boolean logic rendering produces valid CQL
+
+    # --- Spatial functions ---
+    # Used via sqlalchemy.text() or sqlalchemy.func which pass through the compiler as-is.
+    # Supported CQL spatial predicates:
+    #   CONTAINS(geom, POINT(x y))
+    #   CROSSES(geom, LINESTRING(x1 y1, x2 y2))
+    #   INTERSECTS(geom, POINT(x y))
+    #   BBOX(geom, x1, y1, x2, y2)
+    #   DWITHIN(geom, POINT(x y), distance, units)
+    #   WITHIN(geom, POLYGON(...))
+    #   OVERLAPS(geom, POLYGON(...))
+    #   DISJOINT(geom, POLYGON(...))
+    #   TOUCHES(geom, POLYGON(...))
+
+    # --- Temporal predicates ---
+    # Used via sqlalchemy.text() because they use non-SQL syntax:
+    #   ATTR BEFORE 2006-11-30T01:30:00Z
+    #   ATTR AFTER 2006-11-30T01:30:00Z
+    #   ATTR DURING 2006-11-30T01:30:00Z/2006-12-31T01:30:00Z
+
+    # --- Not-Equal: CQL uses <> not != ---
+    def visit_ne_binary(self, binary, operator, **kw):
+        return f"{self.process(binary.left, **kw)} <> {self.process(binary.right, **kw)}"
+
     def visit_binary(self, binary, override_operator=None, eager_grouping=False, **kw):
-        # Handle some CQL specific operators. SQLAlchemy usually turns == into = 
-        # But we need CQL specific transformations if any.
+        from sqlalchemy.sql import operators
+        # Intercept != and rewrite to <>
+        if binary.operator is operators.ne:
+            return f"{self.process(binary.left, **kw)} <> {self.process(binary.right, **kw)}"
         return super().visit_binary(binary, override_operator, eager_grouping, **kw)

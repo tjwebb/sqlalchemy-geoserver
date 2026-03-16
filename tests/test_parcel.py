@@ -202,7 +202,7 @@ def test_select_by_lrid(engine, parcels):
 def test_point_in_polygon(engine, parcels):
     """Find parcels that contain a specific point (point-in-polygon spatial query)."""
     # Use a coordinate in Norfolk, VA (FIPS 51, county 710)
-    lon, lat = -76.2855, 36.8468
+    lon, lat = -76.29793, 36.85664
 
     # GeoServer CQL spatial filter: INTERSECTS(geom, POINT(lon lat))
     spatial_filter = text(f"INTERSECTS(geom, POINT({lon} {lat}))")
@@ -211,7 +211,7 @@ def test_point_in_polygon(engine, parcels):
     with engine.connect() as conn:
         rows = conn.execute(stmt).fetchall()
         print(f"\nFound {len(rows)} parcel(s) containing POINT({lon} {lat})")
-        assert len(rows) > 0
+        assert len(rows) == 1
         for row in rows:
             m = row._mapping
             print(f"  parcelid={m.get('parcelid')}, addr={m.get('parceladdr')}, county={m.get('countyname')}")

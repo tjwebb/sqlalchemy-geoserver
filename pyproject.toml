@@ -25,3 +25,6 @@ geoserver = "sqlalchemy_geoserver.dialect:GeoServerDialect"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
