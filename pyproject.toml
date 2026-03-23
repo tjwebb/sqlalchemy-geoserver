@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqlalchemy-geoserver"
-version = "0.1.0"
+version = "0.2.0"
 description = "A SQLAlchemy Dialect and DBAPI 2.0 driver for GeoServer WFS"
 readme = "README.md"
 authors = [
