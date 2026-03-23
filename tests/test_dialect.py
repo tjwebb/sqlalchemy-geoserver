@@ -31,7 +31,7 @@ def test_dbapi_get_features(mock_send):
         )
         rows = res.fetchall()
         assert len(rows) == 1
-        assert rows[0] == (1, 'test_feature', '{"type": "Point", "coordinates": [10, 20]}')
+        assert rows[0] == (1, 'test_feature', {"type": "Point", "coordinates": [10, 20]})
 
 
 @patch('sqlalchemy_geoserver.dbapi.requests.Session.send')

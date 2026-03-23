@@ -16,6 +16,7 @@ from sqlalchemy import (
     select, text, and_, or_, not_,
     types as sa_types,
 )
+from sqlalchemy_geoserver.dialect import GeoJSON
 
 load_dotenv(".env.test")
 
@@ -66,6 +67,8 @@ def _col_is_numeric(col):
 
 
 def _col_is_geometry(col):
+    if isinstance(col.type, GeoJSON):
+        return True
     name_lower = col.name.lower()
     return name_lower in ("geom", "the_geom", "geometry", "wkb_geometry", "shape")
 
@@ -665,8 +668,8 @@ class TestAllAttributes:
             if val is None:
                 skipped.append(col.name)
                 continue
-            # Skip geometry-like JSON strings
-            if isinstance(val, str) and val.startswith("{"):
+            # Skip geometry-like values (dicts from GeoJSON type)
+            if isinstance(val, dict):
                 skipped.append(col.name)
                 continue
             # Escape single quotes

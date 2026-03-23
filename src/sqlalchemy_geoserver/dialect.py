@@ -1,8 +1,38 @@
 import json
 import sqlalchemy
 from sqlalchemy.engine.default import DefaultDialect
-from sqlalchemy.types import TypeEngine
+from sqlalchemy.types import TypeEngine, UserDefinedType
 from .compiler import GeoServerCompiler, GeoServerIdentifierPreparer
+
+# Geometry type names returned by GeoServer DescribeFeatureType
+GEOMETRY_TYPE_NAMES = {
+    "geometry", "point", "linestring", "polygon",
+    "multipoint", "multilinestring", "multipolygon",
+    "geometrycollection", "curve", "surface", "multisurface", "multicurve",
+}
+
+
+class GeoJSON(UserDefinedType):
+    """Custom SQLAlchemy type that deserializes GeoServer geometry values
+    into GeoJSON dicts."""
+    cache_ok = True
+
+    def get_col_spec(self):
+        return "GEOMETRY"
+
+    def result_processor(self, dialect, coltype):
+        def process(value):
+            if value is None:
+                return None
+            if isinstance(value, dict):
+                return value
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except (json.JSONDecodeError, TypeError):
+                    return value
+            return value
+        return process
 
 class GeoServerDialect(DefaultDialect):
     name = "geoserver"
@@ -98,7 +128,9 @@ class GeoServerDialect(DefaultDialect):
             # localType usually contains "int", "string", "Geometry", etc.
             type_str_lower = (localType or type_str or "").lower()
             
-            if "int" in type_str_lower or "long" in type_str_lower:
+            if type_str_lower in GEOMETRY_TYPE_NAMES or "gml:" in (type_str or "").lower():
+                col_type = GeoJSON
+            elif "int" in type_str_lower or "long" in type_str_lower:
                 col_type = sqlalchemy.types.Integer
             elif "float" in type_str_lower or "double" in type_str_lower or "decimal" in type_str_lower:
                 col_type = sqlalchemy.types.Float

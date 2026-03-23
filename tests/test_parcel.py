@@ -215,3 +215,43 @@ def test_point_in_polygon(engine, parcels):
         for row in rows:
             m = row._mapping
             print(f"  parcelid={m.get('parcelid')}, addr={m.get('parceladdr')}, county={m.get('countyname')}")
+
+
+def test_geometry_returned_as_geojson(engine, parcels):
+    """Prove that geometry is returned as a GeoJSON dict when querying by lrid."""
+    target_lrid = "aa6fbe17-4b98-20aa-d549-c2b4c0570421"
+    stmt = select(parcels).where(parcels.c.lrid == target_lrid).limit(1)
+
+    with engine.connect() as conn:
+        rows = conn.execute(stmt).fetchall()
+        assert len(rows) == 1, f"Expected 1 parcel for lrid={target_lrid}, got {len(rows)}"
+
+        row = rows[0]
+        m = row._mapping
+        assert m["lrid"] == target_lrid
+
+        # Find the geometry column value (typically named "geom" or "the_geom")
+        geom_value = None
+        geom_col_name = None
+        for col_name in m.keys():
+            if col_name.lower() in ("geom", "the_geom", "geometry", "wkb_geometry", "shape"):
+                geom_value = m[col_name]
+                geom_col_name = col_name
+                break
+
+        assert geom_col_name is not None, f"No geometry column found. Columns: {list(m.keys())}"
+        assert geom_value is not None, f"Geometry column '{geom_col_name}' is None"
+        assert isinstance(geom_value, dict), (
+            f"Geometry should be a dict (GeoJSON), got {type(geom_value).__name__}: {str(geom_value)[:200]}"
+        )
+        assert "type" in geom_value, f"GeoJSON missing 'type' key: {geom_value}"
+        assert "coordinates" in geom_value, f"GeoJSON missing 'coordinates' key: {geom_value}"
+        assert geom_value["type"] in (
+            "Point", "MultiPoint", "LineString", "MultiLineString",
+            "Polygon", "MultiPolygon", "GeometryCollection"
+        ), f"Unexpected geometry type: {geom_value['type']}"
+
+        print(f"\nGeometry for lrid={target_lrid}:")
+        print(f"  column: {geom_col_name}")
+        print(f"  type: {geom_value['type']}")
+        print(f"  coordinates count: {len(geom_value['coordinates'])}")

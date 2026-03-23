@@ -1,9 +1,15 @@
 import json
 import logging
+import sys
 import requests
 from typing import Any, Optional, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setLevel(logging.INFO)
+_handler.setFormatter(logging.Formatter("%(name)s %(levelname)s %(message)s"))
+logger.addHandler(_handler)
 
 # DBAPI 2.0 attributes
 apilevel = "2.0"
@@ -188,7 +194,7 @@ class Cursor:
         row_data = []
         for feature in features:
             props = feature.get("properties", {})
-            geom = json.dumps(feature.get("geometry"))
+            geom = feature.get("geometry")
             geom_name = feature.get("geometry_name", "geometry")
             
             row = []

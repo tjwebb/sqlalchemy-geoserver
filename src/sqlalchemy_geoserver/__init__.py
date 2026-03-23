@@ -1,4 +1,4 @@
-from .dialect import GeoServerDialect
+from .dialect import GeoServerDialect, GeoJSON
 from . import dbapi
 
-__all__ = ["GeoServerDialect", "dbapi"]
+__all__ = ["GeoServerDialect", "GeoJSON", "dbapi"]
